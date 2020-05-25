@@ -1,0 +1,224 @@
+---
+title: "Exploring the BRFSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+```
+
+### Load data
+
+Make sure your data and R Markdown files are in the same directory. When loaded
+your data file will be called `brfss2013`. Delete this note when before you submit 
+your work. 
+
+```{r load-data}
+load("brfss2013.RData")
+```
+
+
+
+* * *
+
+## Part 1: Data
+The Data for BRFSS is conducted in the US through CATI (Computer Assisted Telephonic Interview). Non-institutionalized adult
+population (18 years of age and older) residing in the US is the eligible population for the survey to be conducted. 
+
+For the Telephonic interview two samples are considered :- 
+1. Landline Telephonic Interview
+2. Cellular Telephonic Interview
+
+In 2013, 97.5% of the household population had landline telephone service and 39.4% had a cellular telephone service in their households in the first half of 2013 which increased by 1.2% in the second half.
+The states collect samples of telephone numbers from the CDC. The states sample the collected telephone numbers according to the county or particular sub-state geographical regions.
+
+A. The Landline Sample
+Disproportionate stratified sampling (DSS) has been used for the landline sample. The DDS draws telephone numbers from two strata ( high and medium density strata). Then 
+
+B. The cellular Telephone Sample
+Simple random technique is used to pick a cellular telephone number.
+
+Sample Size:-
+The BRFSS goal is to support at least 4,000 interviews per state each year.
+
+BIAS:- 
+This data collection is biased towards households that do no contain any type of telephonic survey in their household. It is also biased towards institutionalized adult population residing in the US.
+
+Since this survey is an observational study, it does not imply causation.
+This survey can be generalized to the adult population (18 years or older) of the US
+
+* * *
+
+## Part 2: Research questions
+
+**Research quesion 1:**
+
+We all know that lack of daily exercise leads to obesity and other problems such as high blood cholesterol. Is there a correlation between exercise habits and high blood cholesterol i.e For those who do not exercise, do they have high blood cholesterol ?
+* Variables of interest (exerany2 , toldhi2)
+
+
+**Research quesion 2:**
+
+ Regular smoking tobbaco and alcohol consumption is related to the risk of coronary heart disease. What effect does regular consumption of alcohol and tobacco have on the heart? What is the probability that adults who regularly drink and smoke are more prone to coronary heart disease? 
+ Variables of interest :- 1. Explanatory variables - smokday2,X_rfdrhv4 2. Response variable - cvdcrhd4
+ 
+**Research quesion 3:**
+
+What effect does lack of exercise have an effect on the BMI (Body Mass Index) of adults in the US? What is the proportion for males as well as females? A BMI greater than 25 is said to be overweight/obese.
+Variables of interest :- X_rfbmi5,exerany2,sex
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+NOTE: Insert code chunks as needed by clicking on the "Insert a new code chunk" 
+button (green button with orange arrow) above. Make sure that your code is visible
+in the project you submit. Delete this note when before you submit your work.
+
+**Research quesion 1:**
+
+We all know that lack of daily exercise leads to obesity and other problems such as high blood cholesterol. Is there a correlation between exercise habits and high blood cholesterol i.e For those who do not exercise, do they have high blood cholesterol ?
+* Variables of interest (exerany2 , toldhi2)
+```{r}
+df1 <- brfss2013 %>%
+ filter(!is.na(toldhi2),!is.na(exerany2)) %>%
+ select(toldhi2,exerany2)
+
+head(df1)
+```
+
+```{r}
+var3 <- df1 %>%
+ filter(exerany2=="No") %>%
+ group_by(toldhi2) %>%
+ summarise(cnt = n())
+
+var3
+```
+Here we can see that adults who do exercise also have similar probability of high blood cholesterol in blood.
+
+Let us visualize this
+```{r}
+ggplot(data = var3, aes(toldhi2,cnt)) + geom_bar(stat="identity")
+
+```
+
+From the bar plot above we can see that adults who do not exercise may or may not have high blood cholestrol. Hence there is no conclusive evidence that lack of exercise may lead to high blood cholestrol.
+
+
+**Research quesion 2:**
+Regular smoking tobbaco and alcohol consumption is related to the risk of coronary heart disease. What effect does regular consumption of alcohol and tobacco have on the heart? What is the probability that adults who regularly drink and smoke are more prone to coronary heart disease?
+  Variables of interest :- 
+  1. Explanatory variables - smokday2,X_rfdrhv4
+  2. Response variable - cvdcrhd4
+```{r}
+df2 <- brfss2013 %>%
+ filter(!is.na(smokday2),!is.na(X_rfdrhv4),!is.na(cvdcrhd4)) %>%
+ select(smokday2,X_rfdrhv4,cvdcrhd4)
+
+head(df2)
+```
+First we remove all the na values.
+
+```{r}
+smevents <- df2 %>%
+ filter(smokday2 == "Every day" | smokday2 == "Some days" & X_rfdrhv4 == "Yes" & cvdcrhd4 == "Yes")%>%
+ summarise(cnt = n())
+
+smevents
+
+
+```
+
+```{r}
+allevents <- df2 %>%
+ summarise(cnt = n())
+
+allevents
+```
+Now the probability that adults who smoke everyday and drink sometimes or everyday is :- 
+
+```{r}
+prob <- smevents / allevents * 100
+prob
+```
+probability = 25.56 % of the adults have coronary heart disease or angina who smoke everyday and drink either everyday or some days.
+```{r}
+ ggplot(df2, aes(x=cvdcrhd4, fill = smokday2)) +
+   geom_bar(position="dodge") + facet_wrap( ~ X_rfdrhv4, ncol=2) 
+```
+
+
+
+**Research quesion 3:**
+
+What effect does lack of exercise have an effect on the BMI (Body Mass Index) of adults in the US? What is the proportion for males as well as females? A BMI greater than 25 is said to be overweight/obese.
+Variables of interest :- X_rfbmi5,exerany2,sex
+
+```{r}
+dfmales <- brfss2013 %>%
+ filter(!is.na(sex),!is.na(exerany2),!is.na(X_rfbmi5),sex=="Male") %>%
+ select(sex,exerany2,X_rfbmi5)
+
+head(dfmales)
+```
+First we query the required variables into a new dataframe.
+
+```{r}
+v1males <- dfmales %>%
+ group_by(exerany2) %>%
+ summarise(count = n())
+v1males
+```
+
+We see that 45890 of the males do not exercise.
+```{r}
+ggplot(data = v1males, aes(exerany2,count)) + geom_bar(stat="identity")
+```
+```{r}
+v2males <- dfmales %>%
+  group_by(exerany2,X_rfbmi5) %>%
+  summarise(count = n())
+probmales <- v2males[4,3] / (v2males[4,3] + v2males[3,3])
+probmales * 100
+```
+
+Approximately 75% of the males who do not exercise have a BMI > 25 (obese / overweight).
+
+Let us see the same statistics in Females
+
+```{r}
+dffemales <- brfss2013 %>%
+ filter(!is.na(sex),!is.na(exerany2),!is.na(X_rfbmi5),sex=="Female") %>%
+ select(sex,exerany2,X_rfbmi5)
+
+head(dffemales)
+```
+```{r}
+v1females <- dffemales %>%
+ group_by(exerany2) %>%
+ summarise(count = n())
+v1females
+```
+```{r}
+ggplot(data = v1females, aes(exerany2,count)) + geom_bar(stat="identity")
+```
+
+```{r}
+v2females <- dffemales %>%
+  group_by(exerany2,X_rfbmi5) %>%
+  summarise(count = n())
+probfemales <- v2females[4,3] / (v2females[4,3] + v2females[3,3])
+probfemales * 100
+```
+
+Approximately 69% of Females who do not exercise have a BMI > 25.
